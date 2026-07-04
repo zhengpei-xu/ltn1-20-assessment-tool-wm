@@ -216,3 +216,7 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# data should not be uploaded 
+# as part of them are non-public
+Data/
