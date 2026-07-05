@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LTN 1/20 Cycling Network Assessment — West Midlands</title>
+
+  <!-- MapLibre GL JS -->
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.5.0/dist/maplibre-gl.css" />
+  <script src="https://unpkg.com/maplibre-gl@4.5.0/dist/maplibre-gl.js"></script>
+
+  <!-- PMTiles protocol -->
+  <script src="https://unpkg.com/pmtiles@3.0.6/dist/pmtiles.js"></script>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ===== LEFT PANEL ===== -->
+  <aside id="panel-left">
+    <header class="panel-header">
+      <h1>LTN 1/20<br/><span class="subtitle">Cycling Network Assessment</span></h1>
+      <p class="region-tag">West Midlands</p>
+    </header>
+
+    <!-- OD Input -->
+    <section class="panel-section">
+      <h2>Route Assessment</h2>
+      <p class="helper-text">Click the map to set origin and destination, or enter coordinates.</p>
+      <div class="od-inputs">
+        <div class="od-row">
+          <span class="od-marker origin-marker">O</span>
+          <input type="text" id="origin-input" placeholder="Click map for origin" readonly />
+          <button class="btn-clear" id="clear-origin" title="Clear">&times;</button>
+        </div>
+        <div class="od-row">
+          <span class="od-marker dest-marker">D</span>
+          <input type="text" id="dest-input" placeholder="Click map for destination" readonly />
+          <button class="btn-clear" id="clear-dest" title="Clear">&times;</button>
+        </div>
+      </div>
+      <div class="od-actions">
+        <button class="btn-primary" id="btn-assess" disabled>Assess Route</button>
+        <button class="btn-secondary" id="btn-reset">Reset</button>
+      </div>
+    </section>
+
+    <!-- Score Display -->
+    <section class="panel-section" id="score-section">
+      <h2>CLoS Score</h2>
+      <div class="score-overall" id="score-overall">
+        <span class="score-value">—</span>
+        <span class="score-label">Overall</span>
+      </div>
+      <div class="score-dimensions" id="score-dimensions">
+        <div class="dim" data-dim="safety">
+          <div class="dim-bar"><div class="dim-fill" id="fill-safety"></div></div>
+          <span class="dim-label">Safety</span>
+          <span class="dim-value" id="val-safety">—</span>
+        </div>
+        <div class="dim" data-dim="attractiveness">
+          <div class="dim-bar"><div class="dim-fill" id="fill-attractiveness"></div></div>
+          <span class="dim-label">Attractiveness</span>
+          <span class="dim-value" id="val-attractiveness">—</span>
+        </div>
+        <div class="dim" data-dim="comfort">
+          <div class="dim-bar"><div class="dim-fill" id="fill-comfort"></div></div>
+          <span class="dim-label">Comfort</span>
+          <span class="dim-value" id="val-comfort">—</span>
+        </div>
+        <div class="dim" data-dim="directness">
+          <div class="dim-bar"><div class="dim-fill" id="fill-directness"></div></div>
+          <span class="dim-label">Directness</span>
+          <span class="dim-value" id="val-directness">—</span>
+        </div>
+        <div class="dim" data-dim="coherence">
+          <div class="dim-bar"><div class="dim-fill" id="fill-coherence"></div></div>
+          <span class="dim-label">Coherence</span>
+          <span class="dim-value" id="val-coherence">—</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Link Inspector -->
+    <section class="panel-section" id="link-info" style="display:none;">
+      <h2>Link Details</h2>
+      <table class="info-table" id="info-table"></table>
+    </section>
+  </aside>
+
+  <!-- ===== MAP ===== -->
+  <div id="map"></div>
+
+  <!-- ===== RIGHT PANEL ===== -->
+  <aside id="panel-right">
+    <!-- Colour-by selector -->
+    <section class="panel-section">
+      <h2>Colour by</h2>
+      <select id="colour-by">
+        <option value="overall" selected>Overall CLoS</option>
+        <option value="safety">Safety</option>
+        <option value="attractiveness">Attractiveness</option>
+        <option value="jat">Junction (JAT)</option>
+        <option value="facility">Facility Type</option>
+      </select>
+    </section>
+
+    <!-- Direction toggle -->
+    <section class="panel-section">
+      <h2>Direction</h2>
+      <div class="toggle-group">
+        <button class="toggle-btn active" data-dir="fwd">Forward</button>
+        <button class="toggle-btn" data-dir="bwd">Backward</button>
+      </div>
+    </section>
+
+    <!-- Legend -->
+    <section class="panel-section">
+      <h2>Legend</h2>
+      <div id="legend"></div>
+    </section>
+
+    <!-- Reference layers -->
+    <section class="panel-section">
+      <h2>Reference Layers</h2>
+      <label class="layer-toggle">
+        <input type="checkbox" id="layer-parking" />
+        Cycle Parking
+      </label>
+      <label class="layer-toggle">
+        <input type="checkbox" id="layer-pois" />
+        Points of Interest
+      </label>
+    </section>
+  </aside>
+
+  <script src="app.js"></script>
+</body>
+</html>
