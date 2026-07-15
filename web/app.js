@@ -431,59 +431,72 @@ function dijkstra(startNode,endNode){
 // Route Scoring
 // =============================================================================
 
-function computeRouteScores(pathEdges,startNode,endNode){
-  if(pathEdges.length===0) return null;
+function computeRouteScores(pathEdges, startNode, endNode) {
+  if (pathEdges.length === 0) return null;
 
-  let totalLen=0, sumSafety=0, sumAttract=0;
-  let comfortLen=0, sumComfort=0;
-  let sumCoherence=0;
+  let totalLen = 0;
+  let sumSafety = 0, sumAttract = 0;
+  let comfortLen = 0, sumComfort = 0;
+  let sumCoherence = 0;
 
-  for(const e of pathEdges){
-    const len = e.len/10; // metres
+  for (const e of pathEdges) {
+    const len = e.len / 10; // metres
     totalLen += len;
 
-    sumSafety += (e.safety/10) * len;
-    sumAttract += (e.attract/10) * len;
-    sumCoherence += (e.a3/10) * len; // a3 is score*10, so /10 gives 0-2
+    sumSafety += (e.safety / 10) * len;     // 0-100 pct
+    sumAttract += (e.attract / 10) * len;   // 0-100 pct
+    sumCoherence += (e.a3 / 10) * len;      // 0-2 raw
 
-    // Comfort (A19): only count links that have cycle provision (a19 != -1)
-    if(e.a19 >= 0){
+    if (e.a19 >= 0) {
       comfortLen += len;
-      sumComfort += (e.a19/10) * len; // a19 is score*10, /10 gives 0-2
+      sumComfort += (e.a19 / 10) * len;     // 0-2 raw
     }
   }
 
-  if(totalLen===0) return null;
+  if (totalLen === 0) return null;
+
+  // --- Dimension percentages (0-100) ---
 
   const safety = sumSafety / totalLen;
-  const attract = sumAttract / totalLen;
-  const coherence = (sumCoherence / totalLen) / 2 * 100; // 0-2 → 0-100%
+  const attractiveness = sumAttract / totalLen;
+  const coherenceRaw = sumCoherence / totalLen;           // 0-2
+  const coherence = (coherenceRaw / 2) * 100;             // 0-100
+  const comfortRaw = comfortLen > 0 ? sumComfort / comfortLen : null; // 0-2
+  const comfort = comfortRaw !== null ? (comfortRaw / 2) * 100 : null; // 0-100
 
-  // Comfort: weighted average of A19 scored links, scaled to 0-100%
-  // If no links have cycle provision, comfort is null
-  const comfort = comfortLen > 0 ? ((sumComfort / comfortLen) / 2 * 100) : null;
-
-  // Directness: detour ratio + gradient
-  const startLng=graph.nodes[startNode*2], startLat=graph.nodes[startNode*2+1];
-  const endLng=graph.nodes[endNode*2], endLat=graph.nodes[endNode*2+1];
-  const straightLine = haversine(startLat,startLng,endLat,endLng);
+  // Directness: detour ratio (D7) + gradient (D8)
+  const startLng = graph.nodes[startNode * 2], startLat = graph.nodes[startNode * 2 + 1];
+  const endLng = graph.nodes[endNode * 2], endLat = graph.nodes[endNode * 2 + 1];
+  const straightLine = haversine(startLat, startLng, endLat, endLng);
   const detourRatio = straightLine > 0 ? straightLine / totalLen : 0;
   const detourScore = detourRatio > 0.8 ? 2 : (detourRatio > 0.6 ? 1 : 0);
-
   const gradResult = scoreRouteGradient(pathEdges);
+  const directness = ((detourScore + gradResult.score) / 4) * 100; // 0-100
 
-  const directness = ((detourScore + gradResult.score) / 4) * 100;
+  // --- Overall CLoS: LTN 1/20 original weights ---
+  // Safety 8/25, Directness 5/25, Comfort 4/25, Attractiveness 5/25, Coherence 3/25
 
-  // Overall: average of all available dimensions
-  const dims = [safety, attract, directness, coherence];
-  if(comfort !== null) dims.push(comfort);
-  const overall = dims.reduce((a,b)=>a+b,0) / dims.length;
+  let overall;
+  if (comfort !== null) {
+    overall = safety          * (8 / 25) +
+              directness      * (5 / 25) +
+              comfort         * (4 / 25) +
+              attractiveness  * (5 / 25) +
+              coherence       * (3 / 25);
+  } else {
+    // No cycle provision on route — redistribute comfort weight proportionally
+    const w = 8 + 5 + 5 + 3; // = 21
+    overall = safety          * (8 / w) +
+              directness      * (5 / w) +
+              attractiveness  * (5 / w) +
+              coherence       * (3 / w);
+  }
 
   return {
-    overall, safety, attractiveness:attract,
+    overall, safety, attractiveness,
     comfort, directness, coherence,
-    totalLength:totalLen, straightLine,
-    detourRatio, gradientResult:gradResult,
+    totalLength: totalLen, straightLine,
+    detourRatio, gradientResult: gradResult,
   };
 }
 
