@@ -588,9 +588,26 @@ function assessRoute(){
     return;
   }
 
-  // Draw route
-  const coords=result.path.map(n=>[graph.nodes[n*2],graph.nodes[n*2+1]]);
-  const geojson={type:'Feature',geometry:{type:'LineString',coordinates:coords}};
+  // Draw route — colour each segment by CLoS score
+  const features = [];
+  for (let i = 0; i < result.path.length - 1; i++) {
+    const from = result.path[i];
+    const to = result.path[i + 1];
+    const edge = result.edges[i];
+    const score = edge ? edge.overall / 10 : 0;
+    features.push({
+      type: 'Feature',
+      properties: { score },
+      geometry: {
+        type: 'LineString',
+        coordinates: [
+          [graph.nodes[from * 2], graph.nodes[from * 2 + 1]],
+          [graph.nodes[to * 2], graph.nodes[to * 2 + 1]]
+        ]
+      }
+    });
+  }
+  const geojson = { type: 'FeatureCollection', features };
 
   if(map.getLayer('route-line')) map.removeLayer('route-line');
   if(map.getLayer('route-outline')) map.removeLayer('route-outline');
@@ -605,7 +622,12 @@ function assessRoute(){
   });
   map.addLayer({
     id:'route-line',type:'line',source:'route',
-    paint:{'line-color':'#3b82f6','line-width':5,'line-opacity':0.9},
+    paint:{
+      'line-color':['interpolate',['linear'],['get','score'],
+        0,'#d73027', 25,'#f46d43', 50,'#fee08b', 70,'#a6d96a', 85,'#1a9850'],
+      'line-width':5,
+      'line-opacity':0.9,
+    },
     layout:{'line-cap':'round','line-join':'round'},
   });
 

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>LTN 1/20 Cycling Network Assessment — West Midlands</title>
 
   <!-- MapLibre GL JS -->
@@ -20,124 +20,282 @@
 </head>
 <body>
 
-  <!-- ===== LEFT PANEL ===== -->
+  <!-- ===== MAP (full viewport) ===== -->
+  <div id="map"></div>
+
+  <!-- ===== LEFT PANEL (floating) ===== -->
   <aside id="panel-left">
     <header class="panel-header">
-      <h1>LTN 1/20<br/><span class="subtitle">Cycling Network Assessment</span></h1>
-      <p class="region-tag">West Midlands</p>
+      <div class="header-top">
+        <div>
+          <h1>LTN 1/20 <span class="subtitle">CLoS Assessment</span></h1>
+          <p class="region-tag">West Midlands</p>
+        </div>
+        <button class="btn-collapse" id="btn-collapse-left" title="Collapse panel">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 12L6 8l4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
     </header>
 
-    <!-- OD Input -->
-    <section class="panel-section">
-      <h2>Route Assessment</h2>
-      <p class="helper-text">Click the map to set origin and destination, or enter coordinates.</p>
-      <div class="od-inputs">
-        <div class="od-row">
-          <span class="od-marker origin-marker">O</span>
-          <input type="text" id="origin-input" placeholder="Click map for origin" readonly />
-          <button class="btn-clear" id="clear-origin" title="Clear">&times;</button>
-        </div>
-        <div class="od-row">
-          <span class="od-marker dest-marker">D</span>
-          <input type="text" id="dest-input" placeholder="Click map for destination" readonly />
-          <button class="btn-clear" id="clear-dest" title="Clear">&times;</button>
-        </div>
-      </div>
-      <div class="od-actions">
-        <button class="btn-primary" id="btn-assess" disabled>Assess Route</button>
-        <button class="btn-secondary" id="btn-reset">Reset</button>
-      </div>
-    </section>
+    <!-- Collapsible sections via accordion -->
+    <div class="panel-body" id="panel-left-body">
 
-    <!-- Score Display -->
-    <section class="panel-section" id="score-section">
-      <h2>CLoS Score</h2>
+      <!-- OD Input -->
+      <section class="panel-section section-open">
+        <h2 class="section-toggle">Route Assessment <span class="chevron">›</span></h2>
+        <div class="section-content">
+          <p class="helper-text">Click the map to set origin & destination.</p>
+          <div class="od-inputs">
+            <div class="od-row">
+              <span class="od-marker origin-marker">O</span>
+              <input type="text" id="origin-input" placeholder="Click map for origin" readonly />
+              <button class="btn-clear" id="clear-origin" title="Clear">&times;</button>
+            </div>
+            <div class="od-row">
+              <span class="od-marker dest-marker">D</span>
+              <input type="text" id="dest-input" placeholder="Click map for destination" readonly />
+              <button class="btn-clear" id="clear-dest" title="Clear">&times;</button>
+            </div>
+          </div>
+          <div class="od-actions">
+            <button class="btn-primary" id="btn-assess" disabled>Assess Route</button>
+            <button class="btn-secondary" id="btn-reset">Reset</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Colour-by -->
+      <section class="panel-section section-open">
+        <h2 class="section-toggle">Display <span class="chevron">›</span></h2>
+        <div class="section-content">
+          <label class="field-label">Colour by</label>
+          <select id="colour-by">
+            <option value="overall" selected>Overall CLoS</option>
+            <option value="safety">Safety</option>
+            <option value="attractiveness">Attractiveness</option>
+            <option value="jat">Junction (JAT)</option>
+            <option value="facility">Facility Type</option>
+          </select>
+
+          <label class="field-label" style="margin-top:12px;">Direction</label>
+          <div class="toggle-group">
+            <button class="toggle-btn active" data-dir="fwd">Forward</button>
+            <button class="toggle-btn" data-dir="bwd">Backward</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Legend -->
+      <section class="panel-section section-open">
+        <h2 class="section-toggle">Legend <span class="chevron">›</span></h2>
+        <div class="section-content">
+          <div id="legend"></div>
+        </div>
+      </section>
+
+      <!-- Reference layers -->
+      <section class="panel-section">
+        <h2 class="section-toggle">Layers <span class="chevron">›</span></h2>
+        <div class="section-content">
+          <label class="layer-toggle">
+            <input type="checkbox" id="layer-parking" />
+            Cycle Parking
+          </label>
+          <label class="layer-toggle">
+            <input type="checkbox" id="layer-pois" />
+            Points of Interest
+          </label>
+        </div>
+      </section>
+
+      <!-- Link Inspector -->
+      <section class="panel-section" id="link-info" style="display:none;">
+        <h2 class="section-toggle">Link Details <span class="chevron">›</span></h2>
+        <div class="section-content">
+          <table class="info-table" id="info-table"></table>
+        </div>
+      </section>
+    </div>
+  </aside>
+
+  <!-- Collapsed left-panel toggle (shown when panel is collapsed) -->
+  <button class="btn-expand-left" id="btn-expand-left" title="Open panel">
+    <svg width="18" height="18" viewBox="0 0 16 16" fill="none"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </button>
+
+  <!-- ===== SCORE CARD (floating top-right) ===== -->
+  <div id="score-card">
+    <div class="score-card-header">
+      <span class="score-card-title">CLoS Score</span>
+      <button class="btn-collapse" id="btn-collapse-score" title="Collapse">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+    <div class="score-card-body" id="score-card-body">
       <div class="score-overall" id="score-overall">
         <span class="score-value">—</span>
         <span class="score-label">Overall</span>
       </div>
       <div class="score-dimensions" id="score-dimensions">
         <div class="dim" data-dim="safety">
-          <div class="dim-bar"><div class="dim-fill" id="fill-safety"></div></div>
           <span class="dim-label">Safety</span>
+          <div class="dim-bar"><div class="dim-fill" id="fill-safety"></div></div>
           <span class="dim-value" id="val-safety">—</span>
         </div>
         <div class="dim" data-dim="attractiveness">
+          <span class="dim-label">Attract.</span>
           <div class="dim-bar"><div class="dim-fill" id="fill-attractiveness"></div></div>
-          <span class="dim-label">Attractiveness</span>
           <span class="dim-value" id="val-attractiveness">—</span>
         </div>
         <div class="dim" data-dim="comfort">
-          <div class="dim-bar"><div class="dim-fill" id="fill-comfort"></div></div>
           <span class="dim-label">Comfort</span>
+          <div class="dim-bar"><div class="dim-fill" id="fill-comfort"></div></div>
           <span class="dim-value" id="val-comfort">—</span>
         </div>
         <div class="dim" data-dim="directness">
+          <span class="dim-label">Direct.</span>
           <div class="dim-bar"><div class="dim-fill" id="fill-directness"></div></div>
-          <span class="dim-label">Directness</span>
           <span class="dim-value" id="val-directness">—</span>
         </div>
         <div class="dim" data-dim="coherence">
+          <span class="dim-label">Coher.</span>
           <div class="dim-bar"><div class="dim-fill" id="fill-coherence"></div></div>
-          <span class="dim-label">Coherence</span>
           <span class="dim-value" id="val-coherence">—</span>
         </div>
       </div>
-    </section>
+    </div>
+  </div>
 
-    <!-- Link Inspector -->
-    <section class="panel-section" id="link-info" style="display:none;">
-      <h2>Link Details</h2>
-      <table class="info-table" id="info-table"></table>
-    </section>
-  </aside>
+  <!-- ===== MOBILE BOTTOM BAR ===== -->
+  <div id="mobile-bar">
+    <button class="mobile-tab active" data-panel="route">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="18" r="3"/><circle cx="19" cy="6" r="3"/><path d="M5 15V9a4 4 0 014-4h6"/></svg>
+      <span>Route</span>
+    </button>
+    <button class="mobile-tab" data-panel="display">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+      <span>Display</span>
+    </button>
+    <button class="mobile-tab" data-panel="score">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+      <span>Score</span>
+    </button>
+  </div>
 
-  <!-- ===== MAP ===== -->
-  <div id="map"></div>
-
-  <!-- ===== RIGHT PANEL ===== -->
-  <aside id="panel-right">
-    <!-- Colour-by selector -->
-    <section class="panel-section">
-      <h2>Colour by</h2>
-      <select id="colour-by">
-        <option value="overall" selected>Overall CLoS</option>
-        <option value="safety">Safety</option>
-        <option value="attractiveness">Attractiveness</option>
-        <option value="jat">Junction (JAT)</option>
-        <option value="facility">Facility Type</option>
-      </select>
-    </section>
-
-    <!-- Direction toggle -->
-    <section class="panel-section">
-      <h2>Direction</h2>
-      <div class="toggle-group">
-        <button class="toggle-btn active" data-dir="fwd">Forward</button>
-        <button class="toggle-btn" data-dir="bwd">Backward</button>
-      </div>
-    </section>
-
-    <!-- Legend -->
-    <section class="panel-section">
-      <h2>Legend</h2>
-      <div id="legend"></div>
-    </section>
-
-    <!-- Reference layers -->
-    <section class="panel-section">
-      <h2>Reference Layers</h2>
-      <label class="layer-toggle">
-        <input type="checkbox" id="layer-parking" />
-        Cycle Parking
-      </label>
-      <label class="layer-toggle">
-        <input type="checkbox" id="layer-pois" />
-        Points of Interest
-      </label>
-    </section>
-  </aside>
+  <!-- ===== MOBILE BOTTOM SHEET ===== -->
+  <div id="mobile-sheet" class="mobile-sheet-hidden">
+    <div class="sheet-handle" id="sheet-handle"><span></span></div>
+    <div class="sheet-content" id="sheet-content"></div>
+  </div>
 
   <script src="app.js"></script>
+
+  <!-- UI interaction script (panel collapse, accordion, mobile) -->
+  <script>
+  // Accordion toggles
+  document.querySelectorAll('.section-toggle').forEach(h2 => {
+    h2.addEventListener('click', () => {
+      h2.closest('.panel-section').classList.toggle('section-open');
+    });
+  });
+
+  // Left panel collapse/expand
+  document.getElementById('btn-collapse-left').addEventListener('click', () => {
+    document.getElementById('panel-left').classList.add('panel-collapsed');
+    document.getElementById('btn-expand-left').classList.add('visible');
+  });
+  document.getElementById('btn-expand-left').addEventListener('click', () => {
+    document.getElementById('panel-left').classList.remove('panel-collapsed');
+    document.getElementById('btn-expand-left').classList.remove('visible');
+  });
+
+  // Score card collapse
+  document.getElementById('btn-collapse-score').addEventListener('click', () => {
+    document.getElementById('score-card').classList.toggle('score-collapsed');
+  });
+
+  // =========================================================================
+  // Mobile: move actual DOM elements into sheet (no cloning)
+  // =========================================================================
+  const mobileSheet = document.getElementById('mobile-sheet');
+  const sheetContent = document.getElementById('sheet-content');
+  const panelSections = document.querySelectorAll('#panel-left .panel-section');
+  const scoreCardBody = document.getElementById('score-card-body');
+
+  // Track what's currently in the sheet so we can return it
+  let activePanel = null;
+  const originalParents = new Map();
+
+  function returnElementsToPanel() {
+    // Move elements back to their original parents
+    originalParents.forEach((parent, el) => {
+      parent.appendChild(el);
+    });
+    originalParents.clear();
+  }
+
+  function moveToSheet(elements) {
+    sheetContent.innerHTML = '';
+    elements.forEach(el => {
+      originalParents.set(el, el.parentNode);
+      el.style.display = 'block';
+      sheetContent.appendChild(el);
+    });
+  }
+
+  document.querySelectorAll('.mobile-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      const panel = tab.dataset.panel;
+      const wasActive = (panel === activePanel) && !mobileSheet.classList.contains('mobile-sheet-hidden');
+
+      // Return any moved elements first
+      returnElementsToPanel();
+
+      document.querySelectorAll('.mobile-tab').forEach(t => t.classList.remove('active'));
+
+      if (wasActive) {
+        mobileSheet.classList.add('mobile-sheet-hidden');
+        activePanel = null;
+        return;
+      }
+
+      tab.classList.add('active');
+      activePanel = panel;
+      mobileSheet.classList.remove('mobile-sheet-hidden');
+
+      if (panel === 'route') {
+        // Move route section content (section 0) + link info (section 4)
+        const els = [];
+        [0, 4].forEach(i => {
+          if (panelSections[i]) {
+            const c = panelSections[i].querySelector('.section-content');
+            if (c) els.push(c);
+          }
+        });
+        moveToSheet(els);
+      } else if (panel === 'display') {
+        // Move display (1), legend (2), layers (3)
+        const els = [];
+        [1, 2, 3].forEach(i => {
+          if (panelSections[i]) {
+            const c = panelSections[i].querySelector('.section-content');
+            if (c) els.push(c);
+          }
+        });
+        moveToSheet(els);
+      } else if (panel === 'score') {
+        moveToSheet([scoreCardBody]);
+      }
+    });
+  });
+
+  // Close sheet on handle tap
+  document.getElementById('sheet-handle').addEventListener('click', () => {
+    returnElementsToPanel();
+    mobileSheet.classList.add('mobile-sheet-hidden');
+    document.querySelectorAll('.mobile-tab').forEach(t => t.classList.remove('active'));
+    activePanel = null;
+  });
+  </script>
 </body>
 </html>
